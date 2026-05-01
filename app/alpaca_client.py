@@ -19,6 +19,21 @@ class AlpacaPaperClient:
             and self.config.alpaca_enable_trading
         )
 
+    def check_connection(self) -> str:
+        if not self.config.alpaca_api_key or not self.config.alpaca_secret_key:
+            return "Alpaca keys are missing. Add ALPACA_API_KEY and ALPACA_SECRET_KEY to .env."
+        if not self.config.alpaca_paper:
+            return "Blocked: ALPACA_PAPER must be true for this bot stage."
+
+        account = self._get_client().get_account()
+        return (
+            "Alpaca paper account connected: "
+            f"status={account.status}, "
+            f"buying_power={account.buying_power}, "
+            f"cash={account.cash}, "
+            f"trading_blocked={account.trading_blocked}"
+        )
+
     def submit_fractional_order(self, signal: Signal, risk: RiskDecision) -> str:
         if not self.enabled():
             return "dry-run: Alpaca paper trading is not enabled"
@@ -27,14 +42,16 @@ class AlpacaPaperClient:
         if signal.action != SignalAction.BUY:
             return f"blocked: only buy orders are supported, got {signal.action.value}"
 
-        client = self._get_client()
-        order = client.submit_order(
+        from alpaca.trading.enums import OrderSide, TimeInForce
+        from alpaca.trading.requests import MarketOrderRequest
+
+        order_request = MarketOrderRequest(
             symbol=signal.ticker,
             notional=risk.trade_dollars,
-            side="buy",
-            type="market",
-            time_in_force="day",
+            side=OrderSide.BUY,
+            time_in_force=TimeInForce.DAY,
         )
+        order = self._get_client().submit_order(order_request)
         return f"paper order submitted: {order.id}"
 
     def _get_client(self):
@@ -47,4 +64,3 @@ class AlpacaPaperClient:
                 paper=True,
             )
         return self._client
-

@@ -22,6 +22,7 @@ app/
   signal_engine.py
   risk_manager.py
   alpaca_client.py
+  database.py
   config.py
   models.py
 data/
@@ -47,6 +48,34 @@ python -m app.main --limit 10
 
 This collects recent announcements/news and prints recommendations. It does not trade.
 
+Each run is logged to SQLite by default at `data/trading_bot.sqlite3`. Use `--no-log` for a temporary run that should not be saved.
+
+If one source is slow, skip it or lower the timeout:
+
+```bash
+python -m app.main --limit 10 --skip-federal-register
+python -m app.main --limit 10 --timeout 3
+```
+
+## Connect Alpaca Paper
+
+After you add paper keys to `.env`, validate the account connection:
+
+```bash
+python -m app.main --check-alpaca
+```
+
+Keep these settings while you are first testing:
+
+```env
+ALPACA_PAPER=true
+ALPACA_ENABLE_TRADING=false
+REQUIRE_MANUAL_APPROVAL=true
+MAX_TRADE_DOLLARS=10
+```
+
+That configuration confirms keys and collects signals while still blocking orders.
+
 ## Paper Trading Gate
 
 Paper execution requires all of these:
@@ -65,7 +94,18 @@ Then run:
 python -m app.main --limit 10 --execute
 ```
 
-Keep `REQUIRE_MANUAL_APPROVAL=true` for the manual approval phase. With that default, the bot prints signals and blocks orders.
+Keep `REQUIRE_MANUAL_APPROVAL=true` for the manual approval phase. With that default, the bot prints signals, logs the decision, and blocks orders.
+
+## Audit Trail
+
+The SQLite database stores:
+
+- collected news items
+- generated signals
+- risk decisions
+- dry-run, blocked, or submitted execution messages
+
+This gives you a record to review before increasing risk or enabling paper execution.
 
 ## Risk Rules
 
@@ -85,8 +125,7 @@ pytest
 
 ## Next Phases
 
-1. Add SQLite persistence for announcements, signals, risk decisions, and paper fills.
-2. Add a backtesting module that replays historical announcements against ETF prices.
-3. Add a manual approval interface before real-money trading.
-4. Add richer NLP and source credibility scoring.
-5. Add Docker and deployment only after the paper system is stable.
+1. Add a backtesting module that replays historical announcements against ETF prices.
+2. Add a manual approval interface before real-money trading.
+3. Add richer NLP and source credibility scoring.
+4. Add Docker and deployment only after the paper system is stable.

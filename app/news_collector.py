@@ -11,7 +11,7 @@ from app.config import settings
 from app.models import NewsItem
 
 
-DEFAULT_TIMEOUT_SECONDS = 15
+DEFAULT_TIMEOUT_SECONDS = 5
 
 
 class NewsCollector:
@@ -21,20 +21,41 @@ class NewsCollector:
     federal_register_url = "https://www.federalregister.gov/api/v1/articles.json"
     newsapi_url = "https://newsapi.org/v2/everything"
 
-    def __init__(self, session: requests.Session | None = None) -> None:
+    def __init__(
+        self,
+        session: requests.Session | None = None,
+        timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+    ) -> None:
         self.session = session or requests.Session()
+        self.timeout_seconds = timeout_seconds
 
-    def collect_all(self, limit: int = 20) -> list[NewsItem]:
+    def collect_all(
+        self,
+        limit: int = 20,
+        include_white_house: bool = True,
+        include_federal_register: bool = True,
+        include_newsapi: bool = True,
+    ) -> list[NewsItem]:
         items: list[NewsItem] = []
-        for collector in (self.fetch_white_house, self.fetch_federal_register, self.fetch_newsapi):
+        collectors = []
+        if include_white_house:
+            collectors.append(self.fetch_white_house)
+        if include_federal_register:
+            collectors.append(self.fetch_federal_register)
+        if include_newsapi:
+            collectors.append(self.fetch_newsapi)
+
+        for collector in collectors:
             try:
                 items.extend(collector(limit=limit))
+            except requests.Timeout as exc:
+                print(f"collector warning: {collector.__name__} timed out after {self.timeout_seconds:g}s: {exc}")
             except requests.RequestException as exc:
                 print(f"collector warning: {collector.__name__} failed: {exc}")
         return _dedupe(items)[:limit]
 
     def fetch_white_house(self, limit: int = 20) -> list[NewsItem]:
-        response = self.session.get(self.white_house_url, timeout=DEFAULT_TIMEOUT_SECONDS)
+        response = self.session.get(self.white_house_url, timeout=self.timeout_seconds)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
@@ -62,7 +83,7 @@ class NewsCollector:
             "order": "newest",
             "conditions[type][]": ["RULE", "PRORULE", "NOTICE", "PRESDOCU"],
         }
-        response = self.session.get(self.federal_register_url, params=params, timeout=DEFAULT_TIMEOUT_SECONDS)
+        response = self.session.get(self.federal_register_url, params=params, timeout=self.timeout_seconds)
         response.raise_for_status()
         payload = response.json()
 
@@ -91,7 +112,7 @@ class NewsCollector:
             "pageSize": limit,
             "apiKey": settings.newsapi_key,
         }
-        response = self.session.get(self.newsapi_url, params=params, timeout=DEFAULT_TIMEOUT_SECONDS)
+        response = self.session.get(self.newsapi_url, params=params, timeout=self.timeout_seconds)
         response.raise_for_status()
         payload = response.json()
 
