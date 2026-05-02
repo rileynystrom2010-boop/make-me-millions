@@ -27,7 +27,14 @@ def test_collect_all_can_skip_federal_register(monkeypatch) -> None:
     monkeypatch.setattr(collector, "fetch_white_house", fake_white_house)
     monkeypatch.setattr(collector, "fetch_federal_register", fake_federal_register)
 
-    items = collector.collect_all(limit=10, include_federal_register=False, include_newsapi=False)
+    items = collector.collect_all(
+        limit=10,
+        include_federal_register=False,
+        include_newsapi=False,
+        include_treasury=False,
+        include_sec=False,
+        include_eia=False,
+    )
 
     assert called["federal_register"] is False
     assert [item.source for item in items] == ["White House"]
@@ -40,6 +47,9 @@ def test_collect_all_can_skip_all_sources() -> None:
         include_white_house=False,
         include_federal_register=False,
         include_newsapi=False,
+        include_treasury=False,
+        include_sec=False,
+        include_eia=False,
     )
 
     assert items == []

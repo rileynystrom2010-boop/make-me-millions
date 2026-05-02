@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 
 from app.alpaca_client import AlpacaPaperClient
 from app.config import settings
@@ -19,6 +20,9 @@ def run(
     include_white_house: bool,
     include_federal_register: bool,
     include_newsapi: bool,
+    include_treasury: bool,
+    include_sec: bool,
+    include_eia: bool,
 ) -> int:
     collector = NewsCollector(timeout_seconds=timeout_seconds)
     engine = SignalEngine()
@@ -34,6 +38,9 @@ def run(
         include_white_house=include_white_house,
         include_federal_register=include_federal_register,
         include_newsapi=include_newsapi,
+        include_treasury=include_treasury,
+        include_sec=include_sec,
+        include_eia=include_eia,
     )
     if not items:
         print("No announcements/news collected.")
@@ -57,6 +64,8 @@ def run(
             print(f"  logged={settings.database_url}")
         print(f"  url={item.url}")
         print()
+        if risk.approved:
+            portfolio = replace(portfolio, open_positions=portfolio.open_positions + 1)
 
     return 0
 
@@ -71,6 +80,9 @@ def main() -> int:
     parser.add_argument("--skip-white-house", action="store_true", help="Skip White House source")
     parser.add_argument("--skip-federal-register", action="store_true", help="Skip Federal Register source")
     parser.add_argument("--skip-newsapi", action="store_true", help="Skip NewsAPI source")
+    parser.add_argument("--skip-treasury", action="store_true", help="Skip Treasury press releases")
+    parser.add_argument("--skip-sec", action="store_true", help="Skip SEC press releases")
+    parser.add_argument("--skip-eia", action="store_true", help="Skip EIA energy press releases")
     args = parser.parse_args()
     if args.check_alpaca:
         print(AlpacaPaperClient().check_connection())
@@ -83,6 +95,9 @@ def main() -> int:
         include_white_house=not args.skip_white_house,
         include_federal_register=not args.skip_federal_register,
         include_newsapi=not args.skip_newsapi,
+        include_treasury=not args.skip_treasury,
+        include_sec=not args.skip_sec,
+        include_eia=not args.skip_eia,
     )
 
 

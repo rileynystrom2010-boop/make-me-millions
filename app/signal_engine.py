@@ -6,8 +6,26 @@ from app.models import Classification, NewsItem, Signal, SignalAction
 
 
 SECTOR_RULES: dict[str, dict[str, tuple[str, ...]]] = {
+    "utilities": {
+        "keywords": ("electricity", "grid", "power", "power demand", "data centers", "electric"),
+        "tickers": ("XLU",),
+    },
     "energy": {
-        "keywords": ("oil", "gas", "drilling", "pipeline", "opec", "lng", "energy"),
+        "keywords": (
+            "oil",
+            "gas",
+            "drilling",
+            "pipeline",
+            "opec",
+            "lng",
+            "energy",
+            "natural gas",
+            "diesel",
+            "gasoline",
+            "hormuz",
+            "production outage",
+            "price forecast",
+        ),
         "tickers": ("XLE",),
     },
     "semiconductors": {
@@ -23,17 +41,45 @@ SECTOR_RULES: dict[str, dict[str, tuple[str, ...]]] = {
         "tickers": ("XLV",),
     },
     "financials": {
-        "keywords": ("bank", "banks", "capital requirements", "interest rates", "treasury", "financial regulation"),
+        "keywords": (
+            "bank",
+            "banks",
+            "capital requirements",
+            "interest rates",
+            "treasury",
+            "financial regulation",
+            "cross-margining",
+            "liquidity",
+            "securities",
+            "market structure",
+            "audit trail",
+        ),
         "tickers": ("XLF",),
     },
     "broad_market": {
-        "keywords": ("sanctions", "shutdown", "debt ceiling", "emergency", "executive order"),
+        "keywords": ("sanctions", "shutdown", "debt ceiling", "emergency", "executive order", "supply chain", "inflation", "cpi", "employment"),
         "tickers": ("SPY",),
     },
 }
 
 NEGATIVE_TERMS = ("ban", "restrict", "restriction", "sanction", "penalty", "investigation", "tariff")
-POSITIVE_TERMS = ("approve", "approval", "permit", "subsidy", "tax credit", "deregulation", "exemption")
+POSITIVE_TERMS = (
+    "approve",
+    "approval",
+    "authorizing",
+    "permit",
+    "subsidy",
+    "tax credit",
+    "deregulation",
+    "exemption",
+    "expansion",
+    "capacity",
+    "forecast",
+    "growth",
+    "investment",
+    "launches",
+    "raises",
+)
 
 
 @dataclass(frozen=True)
@@ -98,4 +144,3 @@ class SignalEngine:
         if positive_hits > negative_hits:
             return SignalAction.BUY
         return SignalAction.HOLD
-

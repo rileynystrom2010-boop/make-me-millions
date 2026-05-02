@@ -20,6 +20,9 @@ class NewsCollector:
     white_house_url = "https://www.whitehouse.gov/presidential-actions/"
     federal_register_url = "https://www.federalregister.gov/api/v1/articles.json"
     newsapi_url = "https://newsapi.org/v2/everything"
+    treasury_url = "https://home.treasury.gov/news/press-releases"
+    sec_press_url = "https://www.sec.gov/newsroom/press-releases"
+    eia_press_url = "https://www.eia.gov/pressroom/releases.php"
 
     def __init__(
         self,
@@ -35,6 +38,9 @@ class NewsCollector:
         include_white_house: bool = True,
         include_federal_register: bool = True,
         include_newsapi: bool = True,
+        include_treasury: bool = True,
+        include_sec: bool = True,
+        include_eia: bool = True,
     ) -> list[NewsItem]:
         items: list[NewsItem] = []
         collectors = []
@@ -42,6 +48,12 @@ class NewsCollector:
             collectors.append(self.fetch_white_house)
         if include_federal_register:
             collectors.append(self.fetch_federal_register)
+        if include_treasury:
+            collectors.append(self.fetch_treasury)
+        if include_sec:
+            collectors.append(self.fetch_sec_press_releases)
+        if include_eia:
+            collectors.append(self.fetch_eia_press_releases)
         if include_newsapi:
             collectors.append(self.fetch_newsapi)
 
@@ -129,6 +141,79 @@ class NewsCollector:
             )
         return items
 
+    def fetch_treasury(self, limit: int = 20) -> list[NewsItem]:
+        response = self.session.get(self.treasury_url, timeout=self.timeout_seconds)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        items: list[NewsItem] = []
+        for link in soup.select("a[href*='/news/press-releases/']"):
+            title = " ".join(link.get_text(" ", strip=True).split())
+            url = _absolute_url(link.get("href", ""), "https://home.treasury.gov")
+            if not title or url.rstrip("/") == self.treasury_url.rstrip("/"):
+                continue
+            items.append(
+                NewsItem(
+                    title=title,
+                    url=url,
+                    source="Treasury",
+                    published_at=datetime.now(timezone.utc),
+                )
+            )
+            if len(items) >= limit:
+                break
+        return items
+
+    def fetch_sec_press_releases(self, limit: int = 20) -> list[NewsItem]:
+        response = self.session.get(
+            self.sec_press_url,
+            timeout=self.timeout_seconds,
+            headers={"User-Agent": "make-millions trading bot contact@example.com"},
+        )
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        items: list[NewsItem] = []
+        for link in soup.select("a[href*='/newsroom/press-releases/'], a[href*='/news/press-release/']"):
+            title = " ".join(link.get_text(" ", strip=True).split())
+            url = _absolute_url(link.get("href", ""), "https://www.sec.gov")
+            if not title or url.rstrip("/") == self.sec_press_url.rstrip("/"):
+                continue
+            items.append(
+                NewsItem(
+                    title=title,
+                    url=url,
+                    source="SEC",
+                    published_at=datetime.now(timezone.utc),
+                )
+            )
+            if len(items) >= limit:
+                break
+        return items
+
+    def fetch_eia_press_releases(self, limit: int = 20) -> list[NewsItem]:
+        response = self.session.get(self.eia_press_url, timeout=self.timeout_seconds)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        items: list[NewsItem] = []
+        for link in soup.select("a[href*='/pressroom/releases/'], a[href*='releases.php']"):
+            title = " ".join(link.get_text(" ", strip=True).split())
+            url = _absolute_url(link.get("href", ""), "https://www.eia.gov")
+            if not title or url.rstrip("/") == self.eia_press_url.rstrip("/"):
+                continue
+            items.append(
+                NewsItem(
+                    title=title,
+                    url=url,
+                    source="EIA",
+                    published_at=datetime.now(timezone.utc),
+                )
+            )
+            if len(items) >= limit:
+                break
+        return items
+
 
 def _parse_datetime(value: str | None) -> datetime:
     if not value:
@@ -152,3 +237,11 @@ def _dedupe(items: Iterable[NewsItem]) -> list[NewsItem]:
         seen.add(key)
         unique.append(item)
     return unique
+
+
+def _absolute_url(url: str, base_url: str) -> str:
+    if url.startswith("http"):
+        return url
+    if url.startswith("/"):
+        return f"{base_url}{url}"
+    return url

@@ -6,7 +6,7 @@ This project is research software, not financial advice. The default configurati
 
 ## What It Does
 
-- Collects announcements from White House Presidential Actions and the Federal Register.
+- Collects announcements from White House Presidential Actions, Federal Register, Treasury, SEC, and EIA.
 - Optionally reads NewsAPI results when `NEWSAPI_KEY` is configured.
 - Maps keywords like `tariff`, `oil`, `semiconductor`, and `pharma` to sectors and ETFs.
 - Generates simple `buy`, `sell`, or `hold` signals.
@@ -55,6 +55,14 @@ If one source is slow, skip it or lower the timeout:
 ```bash
 python -m app.main --limit 10 --skip-federal-register
 python -m app.main --limit 10 --timeout 3
+```
+
+More market-focused source controls:
+
+```bash
+python -m app.main --limit 20 --skip-federal-register
+python -m app.main --limit 20 --skip-white-house --skip-federal-register
+python -m app.main --limit 20 --skip-sec --skip-eia --skip-treasury
 ```
 
 ## Connect Alpaca Paper

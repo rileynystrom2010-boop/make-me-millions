@@ -52,3 +52,18 @@ def test_unrelated_news_holds_cash() -> None:
     assert signal.action == SignalAction.HOLD
     assert signal.ticker == "CASH"
 
+
+def test_data_center_power_demand_maps_to_utilities() -> None:
+    item = NewsItem(
+        title="EIA forecasts strongest growth in electricity demand fueled by data centers",
+        summary="Power demand is expected to rise.",
+        url="https://example.com/electricity",
+        source="test",
+        published_at=datetime.now(timezone.utc),
+    )
+
+    signal = SignalEngine().generate_signal(item)
+
+    assert signal.action == SignalAction.BUY
+    assert signal.ticker == "XLU"
+    assert signal.sector == "utilities"
