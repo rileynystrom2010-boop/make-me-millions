@@ -115,6 +115,26 @@ The SQLite database stores:
 
 This gives you a record to review before increasing risk or enabling paper execution.
 
+## Performance Reports
+
+After you have logged approved buy signals, compare them with Alpaca historical prices:
+
+```bash
+python -m app.performance --hold-days 1
+python -m app.performance --hold-days 3
+python -m app.performance --hold-days 7
+```
+
+Recent signals may show as `PENDING` until enough trading days have passed.
+
+If reports show `price_errors`, run:
+
+```bash
+python -m app.diagnostics --alpaca-account
+```
+
+That checks DNS/HTTPS access for Alpaca and the news sources.
+
 ## Risk Rules
 
 - Max trade size defaults to `$25`.
